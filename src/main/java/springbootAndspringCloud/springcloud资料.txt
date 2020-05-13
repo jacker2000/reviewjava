@@ -1,0 +1,32 @@
+1.springCloud和dubbo区别
+    springCloud和dubbo都是主流微服务框架，从技术上来说，springCloud抛弃dubbo的rpc通信，
+    采用http的rest方式，虽然一定程度牺牲服务调用性能，但也避免了rpc带来问题
+    dubbo定位始终是rpc框架，springCloud是微服务框架一站式解决方案
+
+2.springCloud几大组件
+    springCloud重要组件有：netflix下有五大组件
+    netflix-config:配置管理开发
+    netflix-Eureka:配置服务中心
+    netflix-Hystrix:容错管理工具
+    netflix-zuul:服务网关
+    netflix-feign:服务接口
+
+3.springCloud注解：
+    启动注解：@springBootApplication相当于@Configration @enableAutoConfiguation
+    @Controller控制层，里有多个接口
+    @Repository 一般dao层
+    @RequestMapping(value = '' method = [{questmethod get或post}]) 绑定url;
+    @RequestParam(value='' required = false)绑定注解
+    @modeAttribute 一般用于Controller层，被注解的方法会在所有Mapping执行前执行
+        并且可以绑定参数到model 里面
+    @transactional (readonly = true)注解式事务
+    @enableEurekaClient 配置本应用将使用服务注册和服务发现，注册和发现用这个注解
+    @enableHystrix表示启动断路器，断路器依赖于服务注册和发现
+
+
+
+
+
+
+
+

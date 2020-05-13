@@ -1,0 +1,19 @@
+索引优化
+    有没有走索引
+    一张表索引不超过5个
+    引起全表扫描避免索引失效
+
+    引起全表扫描关键字：  or(使用union all替换)
+        select * form emp where ename ="jack" or job= "sales"
+
+        优化后：
+            select * from emp where  ename ="jack"
+            union
+            select * from emp where job="salseman"
+
+        避免使用in(exist),!= ,<>,like,null
+        索引多了占用磁盘空间
+            降低增删改效率
+
+
+B+Tree

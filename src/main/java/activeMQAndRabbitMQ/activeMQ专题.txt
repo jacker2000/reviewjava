@@ -1,0 +1,116 @@
+Message Queue
+消息中间件是分布式系统重要的组件，
+    主要解决：应用解耦，异步消息，流量肖峰
+        实现：高性能，高可用，可伸缩，最终一致性架构
+    比如：activeMQ,RabbitMQ,roketMQ,Kafka等
+    JMS规范提供操作MQ2个接口：
+        1.点对点模式(P2P)：
+                一个消息只能让一个消费者消费，消费完之后从MQ中删除
+                发送者和接收者之间在时间上没有依赖性，发送者发送消息后，不管接收者有没有正在运行，都不会影响消息被发送到队列
+                接收者在成功接收消息之后需向队列应答成功
+                如果希望发送的每个消息都被成功处理，需要P2P模式
+
+            消息队列(Queue)、发送者(Sender)、接受者(Receiver)
+        2.发布订阅模式(Publish/Subscribe(Pub/Sub))：
+                一个消息可以让多个消费者消费，消费完之后消息不会删除(只消费新消息)
+                发布者和订阅者之间有时间上依赖性，针对某个主题(Topic)订阅者，必须创建一个订阅者之后(先消费，再发布)，才能消费发布者消息
+                为了消费消息，订阅者必须保持运行状态
+                为了缓和严格时间相关性，JMS允许创建一个持久化订阅，即使订阅者没有被激活(运行),它也能接收发布者消息
+                如果希望发送信息不被做任何处理，或只被一个消费者处理，或可以被多个消费者处理，可以采用Pub/Sub模式
+
+
+            主题(Topic)、发布者(Publisher)、订阅者(Subscriber)
+    消息类型：
+        TextMessage:一个字符串对象
+        MapMessage:一套名称--值对
+        ObjectMessage:一个序列化java对象
+        BytesMessage:一个字节的数据流
+        StreamMessage:Java原始值的数据流
+    JMS开发流程：
+        1.ConnectionFactory 创建Connection工厂(有QueueConnectionFactory和TopicConnectionFactory两种)通过JNDI来查找ConnectionFactory对象
+        2.Destination(Queue和Topic)
+            消息生产者消费发送目标或者消息消费者信息来源
+            对于生产者来说，Destination是某个队列(Queue)或某个主题(Topic)
+            对于消息消费者来说，Destination也是某个队列或主题(消息来源)
+        总之：Destination实际是两种对象：Queue、Topic（可以通过JNDI查找Destination）
+        3.Connection
+            表示客户端和JMS系统之间建立连接(对TCP/IP socket包装)
+            Connection产生一个或多个Session，跟ConnectionFactory一样，Connection两种类型：QueueConnection和TopicConnection
+        4.Session
+            Session是操作消息接口，通过Session创建生产者、消费者、消息
+            Session提供事务功能，当需要使用session发送/接收多个消息时，可以将这些发送/接收动作放到一个事务中
+            分为QueueSession和TopicSession
+        5.消息生产者Producer
+            消息生产者由Session创建，并用于将消息发送到Destination
+            分两种类型：QueueSender和TopicPublisher,可以调用消息生产者方法(send或publish)发送消息
+        6.消息消费者Consumer
+            消息消费者由Session创建，用于接收被发送到Destination消息
+            两种类型：QueueReceiver和TopicSubscriber
+            分别通过Session的createReceiver(Queue)或createSubscriber(Topic)来创建
+            也可以Session的createDurableSubscriber方法创建持久化订阅者
+        7.MessageListener
+            针对消费者
+               消息监听器，如果注册消息监听器，一旦消息到达，将自动调用监听器的onMessage方法
+
+应用场景：
+1.异步处理
+    场景1说明：在用户注册后，需要发送注册邮件和注册短信
+        传统模式：注册信息写入数据库成功后，发送注册邮件，再发送注册短信，以上三个任务完成后，再返回给客户端
+            问题；这样会造成并发、吞吐、响应时间问题
+        引入MQ:把注册信息写入数据库之后，写入消息队列的时，同时发送异步请求到邮件和短信，让返回客户端的响应时间缩短
+
+    场景2说明：
+        在修改上下架状态的时候 要保证同步索引库和静态页面
+            商家后台依赖三个服务：商家商品服务，搜索服务，页面生成服务，需要通过MQ解耦
+            问题：更新索引库出错导致静态页面无法生成
+        解决方案：
+            把商品ID存放到MQ中，搜索服务和页面生成服务从MQ获取到这个ID，然后搜索服务根据这个ID把商品对应SKU索引文件生成
+               页面生成服务根据goodsid把静态页面生成
+
+        同步索引库，静态页面生成，修改上下架状态，三个方法同时执行异步操作，之后回到controller告诉页面执行成功
+
+2.应用解耦
+    场景说明：
+        用户下单后，订单系统需要通知库存系统，
+            传统模式：订单系统直接调用库存系统接口
+                问题：
+                    1.假如库存系统无法访问，则订单库存将失败，导致订单失败
+                    2.订单系统和库存系统耦合
+            引入MQ:
+                订单系统：
+                    用户下单之后，订单系统完成持久化处理，将消息写入消息队列，返回用户订单下单成功
+
+                库存系统：
+                    订阅下单消息，采用拉/推方式，获取下单信息，库存系统根据下单信息，进行库存操作
+
+            假设：
+                在下单时库存系统不能正常使用，也不影响正常下单，因为下单之后，订单系统写入消息队列就不关心其他后续操作，实现订单系统和库存系统应用解耦
+
+3.流量削峰
+一般在秒杀或团购活动中使用或者在某一时刻大批量的数据并发访问的时候
+应用场景：
+    秒杀活动，一般因流量过大，导致流量暴增，导致服务器挂掉
+
+    MQ方式：
+        把大量请求都放到MQ中，然后服务器处理MQ中一个一个请求
+    解决方法：需要在应用前端加入消息队列
+        a.可以控制活动人数
+        b.可以缓解短时间内高流量压垮应用
+        c.用户的请求，服务器接收之后，首先写入消息队列，假如消息队列长度超过最大数量，直接抛弃用户请求或跳转错误页面
+        d.秒杀业务根据消息队列中请求信息，再做后续处理
+
+     操作ActiveMQ软件----->>>>JMS
+     操作Redis软件-------->>>>Jedis
+***************************************
+
+Mysql       jdbc    mybatis
+Redis       jedis   springDataRedis
+Solr        solrJ   springDataSolr
+activeMQ    JMS     springJMS
+
+
+
+
+
+
+

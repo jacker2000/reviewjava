@@ -1,0 +1,86 @@
+1.分布式事务
+
+       数据
+
+ S1     S2      S3
+
+ S1,S2,S3都成功，提交给协调者
+需要协调者
+
+2.二阶段提交
+   1.准备
+   2.提交
+
+   协调者，S1参与者,S2参与者,S3参与者,
+   日志，执行，返回，再提交
+
+   若有一个参与者失败，则回滚，
+
+   缺点：
+    1.协调者存在单点故障(同步阻塞)
+    2.可能存在数据不一致(s1,s2提交，S3没有提交)数据一致性问题
+
+3.三阶段提交
+    1.预备
+    2.准备
+    3.提交
+
+    协调者，多个参与者
+    预备中，询问参与者，同意/终止
+    准备阶段，执行请求，返回
+    提交阶段，都成功则提交
+
+    异常问题：
+        预备阶段，准备阶段异常，回滚到分布式事务开启之前阶段
+
+方案二：
+    JTA：
+        跨域多个数据源事务，使用JTA容器(高级服务器，tomcat用不了，如weblogic,webService,跨多个库容器)实现事务
+        分两阶段提交（思路如方案一）
+        遵循JNDI规范（相当于注册中心），类似windows注册表，
+            代码实现：
+                javax.transaction.UserTransaction tx = (UserTransaction)ctx.lookup("jndiName");
+                tx.begin();
+
+                //connection 1 connection2(可能来自不同数据库)
+                tx.commit(); //tx.rollback();
+
+
+        举例：
+
+                          分布式事务管理者
+
+            订单系统                           库存
+            @Tranactional                     @Tranactional
+            create{                           reduceStock(){
+
+                saveOrder();
+                ReduceStock();              }
+            }
+            mysql                               mysql
+
+1.创建连接
+2.开启事务
+3.执行方法
+4.提交/回滚
+
+需要加入分布式事务管理者
+
+流程：
+    1.拿到本地事务的控制权
+    2.需要管理者
+
+3PC
+阶段一：canCommit
+阶段二：preCommit
+阶段三：doCommit
+
+
+
+
+
+
+一系列操作：
+    1.日志
+    2.操作
+    3.提交/回滚

@@ -1,0 +1,22 @@
+                         Collection
+
+         list                               set
+
+ArrayList   Vector  LinkedList      HashSet     TreeSet
+
+ArrayList:初始容量为 10 的空列表
+HashSet(): 底层 HashMap 实例的默认初始容量是 16，加载因子是 0.75
+
+ArrayList:
+    底层数据结构是数组，查询快，增删慢
+    线程不安全，效率高
+
+Vector:
+    底层数据结构是数组，查询快，增删慢
+    线程安全，效率低
+
+LinkedList:
+    底层数据结构是链表，查询慢，增删快
+    线程不安全，效率高
+
+

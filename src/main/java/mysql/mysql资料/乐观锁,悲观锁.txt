@@ -1,0 +1,82 @@
+
+读锁，写锁，共享锁，排他锁
+
+有并发问题的时候，会用锁
+
+隔离性：
+     将数据库设计成单线程数据库，可以防止所有线程安全问题，自然保证隔离性，但是如果数据库设计成这样，效率会极低
+        如果是两个线程并发修改，一定会互相捣乱，这时必须利用锁机制防止多个线程并发修改
+        如果两个线程并发查询，没有线程安全问题
+        如果两个线程一个修改，一个查询....
+
+数据库锁机制：
+(读锁)共享锁：
+    在非 Serializable隔离级别做查询不加任何锁，而在Serializable隔离级别下做查询加共享锁
+    读锁：在读取过程中，不希望别人修改，并且自己也不会修改，我们可以给读取的数据加入读锁。
+        读锁/共享锁特点：
+            共享锁和共享锁可以共存，但是共享锁和排他锁不能共存,读锁可以被其他线程共享，读取的话大家都可以用这把锁读到数据
+                select * from table lock in share mode(读锁、共享锁)
+(写锁)排他锁：
+    在所有隔离级别下进行增删改操作都会加排他锁
+     写锁：我不仅要读还要对数据进行修改，我就可以为我读取的数据加上写锁。
+        写锁/排他锁特点：
+            和任意其他锁都不能共存,只要人为数据加入写锁，其他人就不能为数据加任何数据
+                select * from table where id =1  for update (写锁、排它锁)
+
+
+悲观锁(修改多，查询少) ====>>>防止别人跟我抢着修改数据
+    数据库提供实现，默认会发送别人要修改我使用的数据
+        直接用hibernate中提供的方法
+        写锁hibernate代码实现：
+            Session session = factory.openSession();
+            		session.beginTransaction();
+
+            		com.itheima.domain.Customer customer = (com.itheima.domain.Customer) session.get(com.itheima.domain.Customer.class, 1 ,LockOptions.UPGRADE);
+            		System.out.println(customer);
+
+            		session.getTransaction().commit();
+            		session.close();
+        读锁:
+            Session session = factory.openSession();
+                        		session.beginTransaction();
+
+                        		com.itheima.domain.Customer customer = (com.itheima.domain.Customer) session.get(com.itheima.domain.Customer.class, 1 ,LockOptions.READ);
+                        		System.out.println(customer);
+
+                        		session.getTransaction().commit();
+                        		session.close();
+
+
+乐观锁(查询多，修改少) ====>>>人为控制锁(需要自己实现)
+
+    1.在hibernate 中的pojo中加属性version
+    2.在配置文件中添加
+        <version name = "version"></version>
+
+乐观锁
+    默认不会产生并发问题，取数据的时候认为不会对其他线程数据进行修改，不上锁
+        但更新的时候，会判断其他线程在这之前有没有对数据进行修改，一般使用版本号机制或CAS操作实现
+
+    version方式：
+        一般在数据表中加一个版本号version字段，表示数据被修改的次数，当数据被修改时，version值会加1,
+        当线程A要更新数据值时，在读取数据的同时也会读取version值
+        在提交更新时，若刚才读取version值为当前数据库中version值相等时才更新，否则重试更新操作，直到更新完成
+
+    核心SQL代码
+        update table set x=x+1 , version=version+1 where id=#{id} and version = #{version};
+
+    cas操作方式：
+        即compare and swap 或者 compare and set ,涉及三个操作数，数据所在内存值，预期值，新值
+        当需要更新时，判断当前内存值与之前取到的值是否相等，若相等，则用新值更新，若失败则重试，
+        一般情况下是一个自旋操作，即不断重试
+
+
+更新丢失问题：
+
+    两个线程基于同一个查询结果进行修改，后修改的人会将先修改的人修改覆盖掉
+
+
+
+
+
+

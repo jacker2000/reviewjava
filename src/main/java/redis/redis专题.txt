@@ -1,0 +1,18 @@
+1.redis数据类型
+    redis是C语言开发的开源高性能键值对(key-value)数据库
+        通过多种键值数据类型适应不同场景需求
+
+    以下是value数据类型
+        1.String(字符串)：    常与json连用
+        2.hash(哈希):         一般用于存储javaBean数据，但被string+json完全替代
+            可以看成String key 和 String Value 的map容器
+            非常适合存储值对象信息
+
+        3.list(列表):         链表，实时排名
+        4.set(集合):          唯一性
+        5.sortedset(有序集合):用于网站排名，竞价排名，变化不能太快
+    key全都是String类型！！！value是上述5中类型
+        key的注意：
+            1.key不要太长，最好不要超过1024个字节,不仅会消耗内存还会降低查找效率
+            2.key不要太短，太短会降低key可读性
+
